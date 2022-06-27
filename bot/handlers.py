@@ -76,3 +76,31 @@ async def confirm_participation(update, context):
         meal_member.delete_instance()
     if meal_member is None and int(answer) == 1:
         MealMember.create(meal_id=meal_id, user=user)
+
+
+async def new_chat_members(update, context):
+    chat = Chat.get_or_create(chat_id=update)
+    for new_member in update.message.new_chat_members:
+        user = User.get_or_create(
+            user_id=update.message.from_user.id,
+            defaults={
+                "username": update.message.from_user.username,
+                "is_bot": update.message.from_user.is_bot,
+            },
+        )
+
+        chat.add_member(user)
+
+
+async def left_chat_member(update, context):
+    if update.message.left_chat_member:
+        chat = Chat.get_or_create(chat_id=update)
+        user = User.get_or_create(
+            user_id=update.message.left_chat_member.id,
+            defaults={
+                "username": update.message.left_chat_member.username,
+                "bot": update.message.left_chat_memberis_bot,
+            },
+        )
+
+        chat.remove_member(user)
