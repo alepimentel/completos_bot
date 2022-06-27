@@ -1,27 +1,39 @@
 from os import environ
 
 import sqlite3
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    filters,
+    MessageHandler,
+    PollHandler,
+)
 
-from models import *
-
-
-def start(update, context):
-    context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Hola!",
-    )
+from commands import start, new_poll
+from handlers import (
+    confirm_participation,
+    receive_poll_update,
+    new_chat_members,
+    left_chat_member,
+)
 
 
 def main():
-    updater = Updater(token=environ["TOKEN"], use_context=True)
-    dispatcher = updater.dispatcher
+    application = ApplicationBuilder().token(environ["BOT_TOKEN"]).build()
 
-    start_handler = CommandHandler("start", start)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("new_poll", new_poll))
+    application.add_handler(PollHandler(receive_poll_update))
+    application.add_handler(CallbackQueryHandler(confirm_participation))
+    application.add_handler(
+        MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_chat_members)
+    )
+    application.add_handler(
+        MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, left_chat_member)
+    )
 
-    dispatcher.add_handler(start_handler)
-
-    updater.start_polling()
+    application.run_polling()
 
 
 if __name__ == "__main__":
