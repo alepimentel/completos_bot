@@ -5,11 +5,17 @@ services:
     build: .
     env_file:
       - .env
-    ports:
-      - 8000:8000
     volumes:
       - .:/app
-      - sqlite_data:/var/lib/sqlite_data
+      - sqlite_data:/var/lib/sqlite
+  tasks:
+    build: .
+    entrypoint: poetry run huey_consumer bot.tasks.huey
+    env_file:
+      - .env
+    volumes:
+      - sqlite_data:/var/lib/sqlite
 
 volumes:
   sqlite_data:
+  redis_data:

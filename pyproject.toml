@@ -8,7 +8,7 @@ authors = ["Alejandro Pimentel <apimentel@uc.cl>"]
 python = "^3.10"
 peewee = "^3.15.0"
 python-telegram-bot = "20.0a1"
-requests = "^2.28.0"
+huey = "^2.4.3"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

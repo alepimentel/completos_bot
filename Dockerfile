@@ -10,4 +10,4 @@ RUN poetry install
 
 COPY . /app
 
-ENTRYPOINT ["./bin/entrypoint.sh"]
+ENTRYPOINT ["poetry", "run", "python", "bot/app.py"]

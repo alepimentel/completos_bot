@@ -1,5 +1,4 @@
 from models import db, Chat, ChatMember, User, Poll, PollOption
-from tasks import send_poll
 
 
 async def start(update, context):
