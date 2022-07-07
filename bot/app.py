@@ -1,6 +1,6 @@
 from os import environ
-
 import sqlite3
+
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -10,8 +10,8 @@ from telegram.ext import (
     PollHandler,
 )
 
-from commands import start, new_poll
-from handlers import (
+from bot.commands import start, new_poll
+from bot.handlers import (
     confirm_participation,
     receive_poll_update,
     new_chat_members,
@@ -34,7 +34,3 @@ def main():
     )
 
     application.run_polling()
-
-
-if __name__ == "__main__":
-    main()
