@@ -38,6 +38,12 @@ async def schedule_meal(bot, poll):
         .group_by(User.id)
         .first()
     ) or poll.chat.members().first()
+
+    if poll.elected_option() is None:
+        return await bot.send_message(
+            poll.chat.chat_id, "Nadie votó. 😭", reply_to_message_id=poll.message_id
+        )
+
     meal = Meal.create(
         chat=poll.chat,
         host=host,

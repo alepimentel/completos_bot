@@ -98,8 +98,16 @@ class Poll(BaseModel):
         self.closed_at = datetime.now()
         self.save()
 
+    def votes(self):
+        return (
+            PollOption.select(fn.SUM(PollOption.votes))
+            .where(PollOption.poll == self)
+            .first()
+            .votes
+        )
+
     def elected_option(self):
-        if self.closed_at is None:
+        if self.closed_at is None or self.votes() == 0:
             return None
 
         return (
