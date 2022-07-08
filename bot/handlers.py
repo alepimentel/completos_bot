@@ -8,7 +8,11 @@ from bot.models import db, ChatMember, Meal, MealMember, Poll, PollOption, User
 
 @db.transaction()
 async def receive_poll_update(update, context):
-    poll = Poll.get(Poll.poll_id == update.poll.id)
+    poll = Poll.get_or_none(poll_id=update.poll.id)
+
+    if poll is None:
+        return
+
     for option in update.poll.options:
         poll_option = PollOption.get(
             PollOption.poll == poll, PollOption.text == option.text
@@ -16,12 +20,13 @@ async def receive_poll_update(update, context):
         poll_option.votes = option.voter_count
         poll_option.save()
 
+    if poll.closed_at:
+        await schedule_meal(context.bot, poll)
+
     if poll.chat.member_count() == update.poll.total_voter_count and not poll.closed_at:
         if not update.poll.is_closed:
             await context.bot.stop_poll(poll.chat.chat_id, poll.message_id)
             poll.close()
-
-        await schedule_meal(context.bot, poll)
 
 
 async def schedule_meal(bot, poll):
@@ -33,6 +38,12 @@ async def schedule_meal(bot, poll):
         .group_by(User.id)
         .first()
     ) or poll.chat.members().first()
+
+    if poll.elected_option() is None:
+        return await bot.send_message(
+            poll.chat.chat_id, "Nadie votó. 😭", reply_to_message_id=poll.message_id
+        )
+
     meal = Meal.create(
         chat=poll.chat,
         host=host,
