@@ -20,12 +20,13 @@ async def receive_poll_update(update, context):
         poll_option.votes = option.voter_count
         poll_option.save()
 
+    if poll.closed_at:
+        await schedule_meal(context.bot, poll)
+
     if poll.chat.member_count() == update.poll.total_voter_count and not poll.closed_at:
         if not update.poll.is_closed:
             await context.bot.stop_poll(poll.chat.chat_id, poll.message_id)
             poll.close()
-
-        await schedule_meal(context.bot, poll)
 
 
 async def schedule_meal(bot, poll):
