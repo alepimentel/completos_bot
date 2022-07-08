@@ -1,9 +1,9 @@
-from datetime import date, datetime
+from datetime import date
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from peewee import fn
 
-from models import db, ChatMember, Meal, MealMember, Poll, PollOption, User
+from bot.models import db, ChatMember, Meal, MealMember, Poll, PollOption, User
 
 
 @db.transaction()
