@@ -8,7 +8,11 @@ from bot.models import db, ChatMember, Meal, MealMember, Poll, PollOption, User
 
 @db.transaction()
 async def receive_poll_update(update, context):
-    poll = Poll.get(Poll.poll_id == update.poll.id)
+    poll = Poll.get_or_none(poll_id=update.poll.id)
+
+    if poll is None:
+        return
+
     for option in update.poll.options:
         poll_option = PollOption.get(
             PollOption.poll == poll, PollOption.text == option.text
