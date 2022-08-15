@@ -9,7 +9,7 @@ from telegram.ext import (
     PollHandler,
 )
 
-from bot.commands import AddOption, NewPoll, Start
+from bot.commands import AddOption, NewPoll, ShowOptions, Start
 from bot.handlers import (
     confirm_participation,
     receive_poll_update,
@@ -24,6 +24,7 @@ def main():
     application.add_handler(CommandHandler("start", Start().as_func()))
     application.add_handler(CommandHandler("new_poll", NewPoll().as_func()))
     application.add_handler(CommandHandler("add_option", AddOption().as_func()))
+    application.add_handler(CommandHandler("show_options", ShowOptions().as_func()))
     application.add_handler(PollHandler(receive_poll_update))
     application.add_handler(CallbackQueryHandler(confirm_participation))
     application.add_handler(
