@@ -56,7 +56,7 @@ class Chat(BaseModel):
     def remove_member(self, user):
         chat_member = ChatMember.get(ChatMember.member == user)
 
-        chat_member.left_at = now()
+        chat_member.left_at = datetime.now()
         chat_member.save()
 
 
@@ -94,6 +94,21 @@ class Poll(BaseModel):
     created_at = DateTimeField(constraints=[SQL("DEFAULT (datetime('now'))")])
     closed_at = DateTimeField(null=True)
 
+    async def send(self, bot):
+        options = [option.text for option in self.options]
+
+        poll_response = await bot.send_poll(
+            self.chat.chat_id,
+            "A dónde vamos?",
+            options,
+            is_anonymous=False,
+            allows_multiple_answers=True,
+        )
+
+        self.poll_id = poll_response.poll.id
+        self.message_id = poll_response.message_id
+        self.save()
+
     def close(self):
         self.closed_at = datetime.now()
         self.save()
@@ -119,7 +134,7 @@ class Poll(BaseModel):
 
 
 class PollOption(BaseModel):
-    poll = ForeignKeyField(Poll)
+    poll = ForeignKeyField(Poll, backref="options")
 
     text = CharField(max_length=64)
     votes = SmallIntegerField(default=0)
