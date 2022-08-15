@@ -138,3 +138,11 @@ class PollOption(BaseModel):
 
     text = CharField(max_length=64)
     votes = SmallIntegerField(default=0)
+
+
+class DefaultOption(BaseModel):
+    chat = ForeignKeyField(Chat, backref="default_options")
+    text = CharField(max_length=64)
+
+    class Meta:
+        indexes = ((("chat", "text"), True),)
