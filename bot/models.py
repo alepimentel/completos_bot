@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from os import environ
 
 from peewee import *
@@ -38,6 +38,10 @@ class User(BaseModel):
 class Chat(BaseModel):
     chat_id = IntegerField()
 
+    @property
+    def config(self):
+        return self.configs.get()
+
     def members(self):
         return (
             User.select()
@@ -66,6 +70,27 @@ class ChatMember(BaseModel):
     left_at = DateTimeField(null=True)
 
 
+class GatheringsConfiguration(BaseModel):
+    WEEKDAYS = (
+        (0, "monday"),
+        (1, "tuesday"),
+        (2, "wednesday"),
+        (3, "thursday"),
+        (4, "friday"),
+        (5, "saturday"),
+        (6, "sunday"),
+    )
+
+    chat = ForeignKeyField(Chat, backref="configs", unique=True)
+    period = SmallIntegerField(constraints=[Check("period > 0")])
+    default_time = TimeField(default=time(hour=19))
+    default_weekday = SmallIntegerField(
+        choices=WEEKDAYS,
+        constraints=[Check("default_weekday BETWEEN 0 AND 6")],
+        default=3,
+    )
+
+
 class Meal(BaseModel):
     chat = ForeignKeyField(Chat, backref="meal")
     host = ForeignKeyField(User)
@@ -78,7 +103,7 @@ class Meal(BaseModel):
 
 class MealMember(BaseModel):
     user = ForeignKeyField(User)
-    meal = ForeignKeyField(Meal)
+    meal = ForeignKeyField(Meal, backref="participants")
 
     class Meta:
         indexes = ((("user", "meal"), True),)
@@ -91,7 +116,7 @@ class Poll(BaseModel):
 
     poll_id = CharField(null=True)
     message_id = IntegerField(null=True)
-    created_at = DateTimeField(constraints=[SQL("DEFAULT (datetime('now'))")])
+    created_at = DateTimeField(default=datetime.now)
     closed_at = DateTimeField(null=True)
 
     async def send(self, bot):
