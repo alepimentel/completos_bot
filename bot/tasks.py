@@ -48,16 +48,33 @@ async def send_periodic_polls():
             Poll.select().where(Poll.chat == chat).order_by(Poll.id.desc()).first()
         )
 
-        print("last_poll", last_poll)
-        if last_poll is None or date.today() - last_poll.created_at.date() >= timedelta(
-            weeks=chat.config.period
-        ):
-            await send_default_poll(chat)
+        if chat.config.should_send_poll():
+            if chat.default_options.count() == 1:
+                await send_default_meal(chat)
+            else:
+                await send_default_poll(chat)
+
+
+async def send_default_meal(chat):
+    bot = Bot(environ["BOT_TOKEN"])
+    bot_ = await get_self()
+
+    meal = Meal.create(
+        chat=chat,
+        host=bot_,
+        place=chat.default_options.get().text,
+        date=chat.config.next_default_day(),
+    )
+
+    await bot.send_message(
+        chat.chat_id,
+        f"Esta semana toca junta! Nos vemos en {meal.place} el {meal.date}. Recuerda "
+        "que puedes agregar más opciones con el comando /add_option",
+    )
 
 
 async def send_default_poll(chat):
     bot = Bot(environ["BOT_TOKEN"])
-
     bot_ = await get_self()
 
     if not chat.default_options:

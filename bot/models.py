@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
 from os import environ
 
 from peewee import *
@@ -90,9 +90,33 @@ class GatheringsConfiguration(BaseModel):
         default=3,
     )
 
+    @property
+    def week_period(self):
+        return timedelta(weeks=self.chat.config.period)
+
+    def next_default_day(self):
+        days_until_next_default = (self.default_weekday - date.today().weekday()) % 7
+
+        return date.today() + timedelta(days=days_until_next_default)
+
+    def should_send_poll(self):
+        last_poll = self.chat.polls.order_by(Poll.id.desc()).first()
+        last_meal = self.chat.meals.order_by(Meal.id.desc()).first()
+
+        recent_poll = (
+            last_poll is None
+            or date.today() - last_poll.created_at.date() >= self.week_period
+        )
+        recent_meal = (
+            last_meal is None
+            or self.next_default_day() - last_meal.date >= self.week_period
+        )
+
+        return recent_meal and recent_poll
+
 
 class Meal(BaseModel):
-    chat = ForeignKeyField(Chat, backref="meal")
+    chat = ForeignKeyField(Chat, backref="meals")
     host = ForeignKeyField(User)
     place = CharField(max_length=64)
     date = DateField()
@@ -110,7 +134,7 @@ class MealMember(BaseModel):
 
 
 class Poll(BaseModel):
-    chat = ForeignKeyField(Chat)
+    chat = ForeignKeyField(Chat, backref="polls")
     creator = ForeignKeyField(User)
     meal = ForeignKeyField(Meal, null=True)
 
