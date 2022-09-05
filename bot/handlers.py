@@ -48,7 +48,7 @@ async def schedule_meal(bot, poll):
         chat=poll.chat,
         host=host,
         place=poll.elected_option().text,
-        date=date.today(),
+        date=poll.chat.config.next_default_day(),
     )
 
     keyboard = [

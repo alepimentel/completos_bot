@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 from os import environ
 
 from peewee import *
@@ -38,6 +38,10 @@ class User(BaseModel):
 class Chat(BaseModel):
     chat_id = IntegerField()
 
+    @property
+    def config(self):
+        return self.configs.get()
+
     def members(self):
         return (
             User.select()
@@ -56,7 +60,7 @@ class Chat(BaseModel):
     def remove_member(self, user):
         chat_member = ChatMember.get(ChatMember.member == user)
 
-        chat_member.left_at = now()
+        chat_member.left_at = datetime.now()
         chat_member.save()
 
 
@@ -66,8 +70,53 @@ class ChatMember(BaseModel):
     left_at = DateTimeField(null=True)
 
 
+class GatheringsConfiguration(BaseModel):
+    WEEKDAYS = (
+        (0, "monday"),
+        (1, "tuesday"),
+        (2, "wednesday"),
+        (3, "thursday"),
+        (4, "friday"),
+        (5, "saturday"),
+        (6, "sunday"),
+    )
+
+    chat = ForeignKeyField(Chat, backref="configs", unique=True)
+    period = SmallIntegerField(constraints=[Check("period > 0")])
+    default_time = TimeField(default=time(hour=19))
+    default_weekday = SmallIntegerField(
+        choices=WEEKDAYS,
+        constraints=[Check("default_weekday BETWEEN 0 AND 6")],
+        default=3,
+    )
+
+    @property
+    def week_period(self):
+        return timedelta(weeks=self.chat.config.period)
+
+    def next_default_day(self):
+        days_until_next_default = (self.default_weekday - date.today().weekday()) % 7
+
+        return date.today() + timedelta(days=days_until_next_default)
+
+    def should_send_poll(self):
+        last_poll = self.chat.polls.order_by(Poll.id.desc()).first()
+        last_meal = self.chat.meals.order_by(Meal.id.desc()).first()
+
+        recent_poll = (
+            last_poll is None
+            or date.today() - last_poll.created_at.date() >= self.week_period
+        )
+        recent_meal = (
+            last_meal is None
+            or self.next_default_day() - last_meal.date >= self.week_period
+        )
+
+        return recent_meal and recent_poll
+
+
 class Meal(BaseModel):
-    chat = ForeignKeyField(Chat, backref="meal")
+    chat = ForeignKeyField(Chat, backref="meals")
     host = ForeignKeyField(User)
     place = CharField(max_length=64)
     date = DateField()
@@ -78,21 +127,36 @@ class Meal(BaseModel):
 
 class MealMember(BaseModel):
     user = ForeignKeyField(User)
-    meal = ForeignKeyField(Meal)
+    meal = ForeignKeyField(Meal, backref="participants")
 
     class Meta:
         indexes = ((("user", "meal"), True),)
 
 
 class Poll(BaseModel):
-    chat = ForeignKeyField(Chat)
+    chat = ForeignKeyField(Chat, backref="polls")
     creator = ForeignKeyField(User)
     meal = ForeignKeyField(Meal, null=True)
 
     poll_id = CharField(null=True)
     message_id = IntegerField(null=True)
-    created_at = DateTimeField(constraints=[SQL("DEFAULT (datetime('now'))")])
+    created_at = DateTimeField(default=datetime.now)
     closed_at = DateTimeField(null=True)
+
+    async def send(self, bot):
+        options = [option.text for option in self.options]
+
+        poll_response = await bot.send_poll(
+            self.chat.chat_id,
+            "A dónde vamos?",
+            options,
+            is_anonymous=False,
+            allows_multiple_answers=True,
+        )
+
+        self.poll_id = poll_response.poll.id
+        self.message_id = poll_response.message_id
+        self.save()
 
     def close(self):
         self.closed_at = datetime.now()
@@ -119,7 +183,15 @@ class Poll(BaseModel):
 
 
 class PollOption(BaseModel):
-    poll = ForeignKeyField(Poll)
+    poll = ForeignKeyField(Poll, backref="options")
 
     text = CharField(max_length=64)
     votes = SmallIntegerField(default=0)
+
+
+class DefaultOption(BaseModel):
+    chat = ForeignKeyField(Chat, backref="default_options")
+    text = CharField(max_length=64)
+
+    class Meta:
+        indexes = ((("chat", "text"), True),)
