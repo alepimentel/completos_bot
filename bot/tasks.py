@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from os import environ
 
-from huey import crontab, MemoryHuey
+from huey import crontab, SqliteHuey
 from telegram import Bot
 
 from bot.models import (
@@ -13,14 +13,14 @@ from bot.models import (
     PollOption,
     User,
 )
-from bot.utils import async_to_sync, get_self
+from bot.utils import wait_for, get_self
 
 
-huey = MemoryHuey()
+huey = SqliteHuey("/var/lib/sqlite/huey.db")
 
 
 @huey.periodic_task(crontab(minute="*/5"))
-@async_to_sync
+@wait_for
 async def close_old_polls():
     bot = Bot(environ["BOT_TOKEN"])
 
@@ -39,7 +39,7 @@ async def close_old_polls():
 
 
 @huey.periodic_task(crontab(day_of_week=1, hour="*"))
-@async_to_sync
+@wait_for
 async def send_periodic_polls():
     chats = Chat.select().join(GatheringsConfiguration)
 
