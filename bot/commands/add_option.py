@@ -1,8 +1,9 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from .command import Command
 from bot.models import DefaultOption
+
+from .command import Command
 
 
 class AddOption(Command):

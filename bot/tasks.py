@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from os import environ
 
-from huey import crontab, SqliteHuey
+from huey import SqliteHuey, crontab
 from telegram import Bot
 
 from bot.models import (
@@ -13,8 +13,7 @@ from bot.models import (
     PollOption,
     User,
 )
-from bot.utils import wait_for, get_self
-
+from bot.utils import get_self, wait_for
 
 huey = SqliteHuey("/var/lib/sqlite/huey.db")
 
@@ -44,10 +43,6 @@ async def send_periodic_polls():
     chats = Chat.select().join(GatheringsConfiguration)
 
     for chat in chats:
-        last_poll = (
-            Poll.select().where(Poll.chat == chat).order_by(Poll.id.desc()).first()
-        )
-
         if chat.config.should_send_poll():
             if chat.default_options.count() == 1:
                 await send_default_meal(chat)

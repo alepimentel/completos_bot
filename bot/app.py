@@ -4,27 +4,26 @@ from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
-    filters,
     MessageHandler,
     PollHandler,
+    filters,
 )
 
-from bot.commands import AddOption, NewPoll, ShowOptions, Start
+from bot.commands import COMMANDS
 from bot.handlers import (
     confirm_participation,
-    receive_poll_update,
-    new_chat_members,
     left_chat_member,
+    new_chat_members,
+    receive_poll_update,
 )
 
 
 def main():
     application = ApplicationBuilder().token(environ["BOT_TOKEN"]).build()
 
-    application.add_handler(CommandHandler("start", Start().as_func()))
-    application.add_handler(CommandHandler("new_poll", NewPoll().as_func()))
-    application.add_handler(CommandHandler("add_option", AddOption().as_func()))
-    application.add_handler(CommandHandler("show_options", ShowOptions().as_func()))
+    for name, Command in COMMANDS.items():
+        application.add_handler(CommandHandler(name, Command().as_func()))
+
     application.add_handler(PollHandler(receive_poll_update))
     application.add_handler(CallbackQueryHandler(confirm_participation))
     application.add_handler(

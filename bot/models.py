@@ -1,22 +1,21 @@
 from datetime import date, datetime, time, timedelta
 from os import environ
 
-from peewee import *
+import peewee
+
+db = peewee.SqliteDatabase(environ["DATABASE_URL"], pragmas={"foreign_keys": 1})
 
 
-db = SqliteDatabase(environ["DATABASE_URL"], pragmas={"foreign_keys": 1})
-
-
-class BaseModel(Model):
+class BaseModel(peewee.Model):
     class Meta:
         database = db
         legacy_table_names = False
 
 
 class User(BaseModel):
-    bot = BooleanField()
-    user_id = IntegerField(unique=True)
-    username = CharField(unique=True, max_length=32)
+    bot = peewee.BooleanField()
+    user_id = peewee.IntegerField(unique=True)
+    username = peewee.CharField(unique=True, max_length=32)
 
     @classmethod
     def get_or_create_and_add_to_chat(cls, user_id, chat_id, defaults):
@@ -36,7 +35,7 @@ class User(BaseModel):
 
 
 class Chat(BaseModel):
-    chat_id = IntegerField()
+    chat_id = peewee.IntegerField()
 
     @property
     def config(self):
@@ -47,7 +46,7 @@ class Chat(BaseModel):
             User.select()
             .join(ChatMember)
             .where(
-                User.bot == False, ChatMember.chat == self, ChatMember.left_at == None
+                User.bot == False, ChatMember.chat == self, ChatMember.left_at.is_null()
             )
         )
 
@@ -65,9 +64,9 @@ class Chat(BaseModel):
 
 
 class ChatMember(BaseModel):
-    chat = ForeignKeyField(Chat)
-    user = ForeignKeyField(User)
-    left_at = DateTimeField(null=True)
+    chat = peewee.ForeignKeyField(Chat)
+    user = peewee.ForeignKeyField(User)
+    left_at = peewee.DateTimeField(null=True)
 
 
 class GatheringsConfiguration(BaseModel):
@@ -81,12 +80,12 @@ class GatheringsConfiguration(BaseModel):
         (6, "sunday"),
     )
 
-    chat = ForeignKeyField(Chat, backref="configs", unique=True)
-    period = SmallIntegerField(constraints=[Check("period > 0")])
-    default_time = TimeField(default=time(hour=19))
-    default_weekday = SmallIntegerField(
+    chat = peewee.ForeignKeyField(Chat, backref="configs", unique=True)
+    period = peewee.SmallIntegerField(constraints=[peewee.Check("period > 0")])
+    default_time = peewee.TimeField(default=time(hour=19))
+    default_weekday = peewee.SmallIntegerField(
         choices=WEEKDAYS,
-        constraints=[Check("default_weekday BETWEEN 0 AND 6")],
+        constraints=[peewee.Check("default_weekday BETWEEN 0 AND 6")],
         default=3,
     )
 
@@ -103,45 +102,45 @@ class GatheringsConfiguration(BaseModel):
         last_poll = self.chat.polls.order_by(Poll.id.desc()).first()
         last_meal = self.chat.meals.order_by(Meal.id.desc()).first()
 
-        recent_poll = (
+        old_poll = (
             last_poll is None
             or date.today() - last_poll.created_at.date() >= self.week_period
         )
-        recent_meal = (
+        old_meal = (
             last_meal is None
             or self.next_default_day() - last_meal.date >= self.week_period
         )
 
-        return recent_meal and recent_poll
+        return old_meal and old_poll
 
 
 class Meal(BaseModel):
-    chat = ForeignKeyField(Chat, backref="meals")
-    host = ForeignKeyField(User)
-    place = CharField(max_length=64)
-    date = DateField()
+    chat = peewee.ForeignKeyField(Chat, backref="meals")
+    host = peewee.ForeignKeyField(User)
+    place = peewee.CharField(max_length=64)
+    date = peewee.DateField()
 
     def members(self):
         return MealMember.select().where(MealMember.meal == self)
 
 
 class MealMember(BaseModel):
-    user = ForeignKeyField(User)
-    meal = ForeignKeyField(Meal, backref="participants")
+    user = peewee.ForeignKeyField(User)
+    meal = peewee.ForeignKeyField(Meal, backref="participants")
 
     class Meta:
         indexes = ((("user", "meal"), True),)
 
 
 class Poll(BaseModel):
-    chat = ForeignKeyField(Chat, backref="polls")
-    creator = ForeignKeyField(User)
-    meal = ForeignKeyField(Meal, null=True)
+    chat = peewee.ForeignKeyField(Chat, backref="polls")
+    creator = peewee.ForeignKeyField(User)
+    meal = peewee.ForeignKeyField(Meal, null=True)
 
-    poll_id = CharField(null=True)
-    message_id = IntegerField(null=True)
-    created_at = DateTimeField(default=datetime.now)
-    closed_at = DateTimeField(null=True)
+    poll_id = peewee.CharField(null=True)
+    message_id = peewee.IntegerField(null=True)
+    created_at = peewee.DateTimeField(default=datetime.now)
+    closed_at = peewee.DateTimeField(null=True)
 
     async def send(self, bot):
         options = [option.text for option in self.options]
@@ -164,7 +163,7 @@ class Poll(BaseModel):
 
     def votes(self):
         return (
-            PollOption.select(fn.SUM(PollOption.votes))
+            PollOption.select(peewee.fn.SUM(PollOption.votes))
             .where(PollOption.poll == self)
             .first()
             .votes
@@ -183,15 +182,15 @@ class Poll(BaseModel):
 
 
 class PollOption(BaseModel):
-    poll = ForeignKeyField(Poll, backref="options")
+    poll = peewee.ForeignKeyField(Poll, backref="options")
 
-    text = CharField(max_length=64)
-    votes = SmallIntegerField(default=0)
+    text = peewee.CharField(max_length=64)
+    votes = peewee.SmallIntegerField(default=0)
 
 
 class DefaultOption(BaseModel):
-    chat = ForeignKeyField(Chat, backref="default_options")
-    text = CharField(max_length=64)
+    chat = peewee.ForeignKeyField(Chat, backref="default_options")
+    text = peewee.CharField(max_length=64)
 
     class Meta:
         indexes = ((("chat", "text"), True),)

@@ -2,7 +2,6 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from .command import Command
-from bot.models import db
 
 
 class ShowOptions(Command):
