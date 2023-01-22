@@ -5,10 +5,10 @@ description = ""
 authors = ["Alejandro Pimentel <apimentel@uc.cl>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-peewee = "^3.15.0"
-python-telegram-bot = "20.0a1"
+python = "^3.11"
 huey = "^2.4.3"
+peewee = "^3.15.0"
+python-telegram-bot = "^20.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"
