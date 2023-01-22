@@ -12,4 +12,4 @@ RUN poetry install
 
 COPY . /app
 
-ENTRYPOINT ["poetry", "run", "python", "bot"]
+CMD ["poetry", "run", "python", "bot"]
