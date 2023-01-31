@@ -81,7 +81,9 @@ class GatheringsConfiguration(BaseModel):
     )
 
     chat = peewee.ForeignKeyField(Chat, backref="configs", unique=True)
-    period = peewee.SmallIntegerField(constraints=[peewee.Check("period > 0")])
+    period = peewee.SmallIntegerField(
+        constraints=[peewee.Check("period >= 0")], default=4
+    )
     default_time = peewee.TimeField(default=time(hour=19))
     default_weekday = peewee.SmallIntegerField(
         choices=WEEKDAYS,

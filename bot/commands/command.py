@@ -1,12 +1,12 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.models import Chat, ChatMember, User
+from bot.models import Chat, ChatMember, GatheringsConfiguration, User
 
 
 class Command:
     def setup(self, update: Update) -> None:
-        self.chat, _ = Chat.get_or_create(chat_id=update.message.chat.id)
+        self.chat, chat_created = Chat.get_or_create(chat_id=update.message.chat.id)
         self.user, created = User.get_or_create(
             user_id=update.message.from_user.id,
             defaults={
@@ -15,6 +15,8 @@ class Command:
             },
         )
 
+        if chat_created:
+            GatheringsConfiguration.create(chat=self.chat, period=0)
         if created:
             ChatMember.create(chat=self.chat, user=self.user)
 
