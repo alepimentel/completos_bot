@@ -71,13 +71,13 @@ class ChatMember(BaseModel):
 
 class GatheringsConfiguration(BaseModel):
     WEEKDAYS = (
-        (0, "monday"),
-        (1, "tuesday"),
-        (2, "wednesday"),
-        (3, "thursday"),
-        (4, "friday"),
-        (5, "saturday"),
-        (6, "sunday"),
+        (0, "lunes"),
+        (1, "martes"),
+        (2, "miércoles"),
+        (3, "jueves"),
+        (4, "viernes"),
+        (5, "sábado"),
+        (6, "domingo"),
     )
 
     chat = peewee.ForeignKeyField(Chat, backref="configs", unique=True)
