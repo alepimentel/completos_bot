@@ -1,7 +1,8 @@
-from peewee import fn
+from datetime import date
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from peewee import fn
 
-from bot.models import Chat, ChatMember, Meal, MealMember, Poll, PollOption, User, db
+from bot.models import db, Chat, ChatMember, Meal, MealMember, Poll, PollOption, User
 
 
 @db.transaction()
@@ -42,17 +43,27 @@ async def schedule_meal(bot, poll):
             poll.chat.chat_id, "Nadie votó. 😭", reply_to_message_id=poll.message_id
         )
 
+    meal_date = (
+        poll.chat.config.next_default_day()
+        if poll.chat.configs.get_or_none()
+        else date.today()
+    )
+
     meal = Meal.create(
         chat=poll.chat,
         host=host,
         place=poll.elected_option().text,
-        date=poll.chat.config.next_default_day(),
+        date=meal_date,
     )
 
     keyboard = [
         [
-            InlineKeyboardButton("Si 😬", callback_data=f"{meal.id}:1"),
-            InlineKeyboardButton("No 😞", callback_data=f"{meal.id}:0"),
+            InlineKeyboardButton(
+                "Si 😬", callback_data=f"confirm_participation:{meal.id}:1"
+            ),
+            InlineKeyboardButton(
+                "No 😞", callback_data=f"confirm_participation:{meal.id}:0"
+            ),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -66,7 +77,7 @@ async def schedule_meal(bot, poll):
 
 async def confirm_participation(update, context):
     query = update.callback_query
-    meal_id, answer = update.callback_query.data.split(":")
+    _, meal_id, answer = update.callback_query.data.split(":")
 
     await query.answer()
 
