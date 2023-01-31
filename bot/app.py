@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 
 from bot.commands import COMMANDS
+from bot.handlers import ConfigurationHandler
 from bot.handlers import (
     confirm_participation,
     left_chat_member,
@@ -22,10 +23,15 @@ def main():
     application = ApplicationBuilder().token(environ["BOT_TOKEN"]).build()
 
     for name, Command in COMMANDS.items():
-        application.add_handler(CommandHandler(name, Command().as_func()))
+        application.add_handler(CommandHandler(name, Command.as_func()))
 
     application.add_handler(PollHandler(receive_poll_update))
-    application.add_handler(CallbackQueryHandler(confirm_participation))
+    application.add_handler(
+        CallbackQueryHandler(confirm_participation, pattern="^confirm_participation")
+    )
+    application.add_handler(
+        CallbackQueryHandler(ConfigurationHandler.as_func(), pattern="^config")
+    )
     application.add_handler(
         MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_chat_members)
     )

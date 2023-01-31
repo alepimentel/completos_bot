@@ -5,3 +5,5 @@ from .handlers import (
     new_chat_members,
     left_chat_member,
 )
+
+from .configuration_handler import ConfigurationHandler
