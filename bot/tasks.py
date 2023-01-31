@@ -2,10 +2,12 @@ from datetime import date, datetime, timedelta
 from os import environ
 
 from huey import SqliteHuey, crontab
+from peewee import fn
 from telegram import Bot
 
 from bot.models import (
     Chat,
+    DefaultOption,
     GatheringsConfiguration,
     Meal,
     MealMember,
@@ -40,7 +42,15 @@ async def close_old_polls():
 @huey.periodic_task(crontab(day_of_week=1, hour="*"))
 @wait_for
 async def send_periodic_polls():
-    chats = Chat.select().join(GatheringsConfiguration)
+    chats = (
+        Chat.select()
+        .join(GatheringsConfiguration)
+        .where(GatheringsConfiguration.period > 0)
+        .switch(Chat)
+        .join(DefaultOption)
+        .group_by(GatheringsConfiguration)
+        .having(fn.Count(DefaultOption.id) > 0)
+    )
 
     for chat in chats:
         if chat.config.should_send_poll():
