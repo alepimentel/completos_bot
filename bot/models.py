@@ -54,10 +54,14 @@ class Chat(BaseModel):
         return self.members().count()
 
     def add_member(self, user):
-        ChatMember.create(chat=self, member=user)
+        chat_member, created = ChatMember.get_or_create(chat=self, user=user)
+
+        if not created:
+            chat_member.left_at = None
+            chat_member.save()
 
     def remove_member(self, user):
-        chat_member = ChatMember.get(ChatMember.member == user)
+        chat_member = ChatMember.get(ChatMember.user == user)
 
         chat_member.left_at = datetime.now()
         chat_member.save()
@@ -66,6 +70,7 @@ class Chat(BaseModel):
 class ChatMember(BaseModel):
     chat = peewee.ForeignKeyField(Chat)
     user = peewee.ForeignKeyField(User)
+
     left_at = peewee.DateTimeField(null=True)
 
 

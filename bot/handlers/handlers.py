@@ -99,13 +99,13 @@ async def confirm_participation(update, context):
 
 
 async def new_chat_members(update, context):
-    chat = Chat.get_or_create(chat_id=update)
+    chat, _ = Chat.get_or_create(chat_id=update.message.chat.id)
     for new_member in update.message.new_chat_members:
-        user = User.get_or_create(
-            user_id=update.message.from_user.id,
+        user, _ = User.get_or_create(
+            user_id=new_member.id,
             defaults={
-                "username": update.message.from_user.username,
-                "is_bot": update.message.from_user.is_bot,
+                "username": new_member.username,
+                "bot": new_member.is_bot,
             },
         )
 
@@ -113,14 +113,13 @@ async def new_chat_members(update, context):
 
 
 async def left_chat_member(update, context):
-    if update.message.left_chat_member:
-        chat = Chat.get_or_create(chat_id=update)
-        user = User.get_or_create(
-            user_id=update.message.left_chat_member.id,
-            defaults={
-                "username": update.message.left_chat_member.username,
-                "bot": update.message.left_chat_memberis_bot,
-            },
-        )
+    chat, _ = Chat.get_or_create(chat_id=update.message.chat.id)
+    user, _ = User.get_or_create(
+        user_id=update.message.left_chat_member.id,
+        defaults={
+            "username": update.message.left_chat_member.username,
+            "bot": update.message.left_chat_member.is_bot,
+        },
+    )
 
-        chat.remove_member(user)
+    chat.remove_member(user)
